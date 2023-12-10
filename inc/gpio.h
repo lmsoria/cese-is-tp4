@@ -21,11 +21,14 @@ SPDX-License-Identifier: MIT
 
 #pragma once
 
-/** @file
- ** @brief Definición de la función principal del programa
+/** @file gpio.h
+ ** @brief Capa de abstracción para gestionar puertos de E/S digitales (definición)
  **/
 
 /* === Headers files inclusions ================================================================ */
+
+#include <stdbool.h>
+#include <stdint.h>
 
 /* === Cabecera C++ ============================================================================ */
 
@@ -37,13 +40,38 @@ extern "C" {
 
 /* === Public data type declarations =========================================================== */
 
+typedef struct GPIO * GPIO_t;
+
 /* === Public variable declarations ============================================================ */
 
 /* === Public function declarations ============================================================ */
 
-/// @brief Función principal del sistema, se ejecuta al iniciar el programa
-/// @return -1 si hubo algún error instanciando los LEDs.
-int main(void);
+/// @brief Crea un puerto digital con los parámetros dados.
+/// @param port Puerto de E/S.
+/// @param pin Número de Pin.
+/// @param is_output `true` si es salida, `false` si es entrada.
+/// @return Puntero al objeto creado.
+GPIO_t gpio_create(uint32_t port, uint32_t pin, bool is_output);
+
+/// @brief Cambiar el estado del GPIO para que sea entrada o salida.
+/// @param gpio GPIO a configurar.
+/// @param output `true` si es salida, `false` si es entrada.
+void gpio_set_direction(GPIO_t gpio, bool output);
+
+/// @brief Consultar si el GPIO es entrada o salida
+/// @param gpio GPIO a consultar.
+/// @return `true` si es salida, `false` si es entrada.
+bool gpio_get_direction(GPIO_t gpio);
+
+/// @brief Configurar el estado lógico del GPIO (siempre y cuando sea de salida).
+/// @param gpio GPIO a configurar.
+/// @param state `true` para que esté en estado lógico alto, `false` de lo contrario.
+void gpio_set_state(GPIO_t gpio, bool state);
+
+/// @brief Consultar el estado lógico del GPIO.
+/// @param gpio GPIO a consultar.
+/// @return `true` si está en estado lógico alto, `false` de lo contrario.
+bool gpio_get_state(GPIO_t gpio);
 
 /* === End of documentation ==================================================================== */
 

@@ -17,7 +17,7 @@ all: $(OBJ_FILES)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo Compilando $<
 	@mkdir -p $(OBJ_DIR)
-	@gcc -o $@ -c $< -I$(INC_DIR) -MMD -DUSE_DYNAMIC_MEM -DGPIO_MAX_INSTANCES=15
+	@gcc -o $@ -c $< -I$(INC_DIR) -MMD -DUSE_STATIC_ALLOCATION -DMAX_GPIO_INSTANCES=16
 
 clean:
 	@rm -r $(OUT_DIR)

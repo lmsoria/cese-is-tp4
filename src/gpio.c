@@ -19,33 +19,47 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 SPDX-License-Identifier: MIT
 *************************************************************************************************/
 
-/** @file main.c
- ** @brief Declaracion de la función principal del programa
+/** @file gpio.c
+ ** @brief Capa de abstracción para gestionar puertos de E/S digitales (implementación)
  **/
 
 /* === Headers files inclusions =============================================================== */
 
+#include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 
 #include "gpio.h"
-#include "main.h"
 
 /* === Macros definitions ====================================================================== */
 
-#define LED_RED_PORT   1
-#define LED_GREEN_PORT 2
-
-#define LED_RED_PIN    28
-#define LED_GREEN_PIN  12
+#ifdef USE_STATIC_ALLOCATION
+#ifndef MAX_GPIO_INSTANCES
+#define MAX_GPIO_INSTANCES 16
+#endif
+#endif
 
 /* === Private data type declarations ========================================================== */
+
+/// @brief Estructura con los atributos de un puerto
+struct GPIO {
+    uint32_t port;  ///< Número de puerto GPIO.
+    uint32_t pin;   ///< Pin del puerto GPIO.
+    bool is_output; ///< El puerto está configurado como salida.
+    bool state;     ///< Estado lógico del puerto
+#ifdef USE_STATIC_ALLOCATION
+    bool used; ///< El descriptor del puerto está ocupado.
+#endif
+};
 
 /* === Private variable declarations =========================================================== */
 
 /* === Private function declarations =========================================================== */
 
-static void delay(int ms);
+#ifdef USE_STATIC_ALLOCATION
+/// @brief Función para alocar estáticamente un puerto GPIO.
+/// @return Puntero al objeto alocado si hay espacio, o NULL en caso contrario.
+static GPIO_t gpio_allocate();
+#endif
 
 /* === Public variable definitions ============================================================= */
 
@@ -53,29 +67,63 @@ static void delay(int ms);
 
 /* === Private function implementation ========================================================= */
 
-static void delay(int ms) {
-    usleep(1000 * ms);
+#ifdef USE_STATIC_ALLOCATION
+static GPIO_t gpio_allocate() {
+    static struct GPIO GPIO_INSTANCES[MAX_GPIO_INSTANCES] = {0};
+    GPIO_t ret = NULL;
+
+    for (size_t index = 0; index < MAX_GPIO_INSTANCES; index++) {
+        if (!GPIO_INSTANCES[index].used) {
+            ret = &GPIO_INSTANCES[index];
+            ret->used = true;
+            break;
+        }
+    }
+
+    return ret;
 }
+#endif
 
 /* === Public function implementation ========================================================== */
 
-int main(void) {
+GPIO_t gpio_create(uint32_t port, uint32_t pin, bool is_output) {
 
-    GPIO_t led_red = gpio_create(LED_RED_PORT, LED_RED_PIN, true);
-    GPIO_t led_green = gpio_create(LED_GREEN_PORT, LED_GREEN_PIN, true);
+    GPIO_t self;
 
-    if (!led_red || !led_green) {
-        printf("No se pudo inicializar alguno de los LEDs. Saliendo...\n");
-        return -1;
+#ifdef USE_STATIC_ALLOCATION
+    self = gpio_allocate();
+#else
+    self = malloc(sizeof(struct GPIO));
+#endif
+
+    if (self) {
+        self->pin = pin;
+        self->port = port;
+        self->is_output = is_output;
     }
 
-    while (1) {
-        gpio_set_state(led_red, true);
-        delay(1000);
-        gpio_set_state(led_red, false);
-    }
+    printf("[gpio] Alocado Puerto <%d,%d> como %s\n", self->port, self->pin,
+           self->is_output ? "salida" : "entrada");
+    return self;
+}
 
-    return 0;
+void gpio_set_direction(GPIO_t gpio, bool output) {
+    gpio->is_output = output;
+}
+
+bool gpio_get_direction(GPIO_t gpio) {
+    return gpio->is_output;
+}
+
+void gpio_set_state(GPIO_t gpio, bool state) {
+    if (gpio->is_output) {
+        gpio->state = state;
+        printf("[gpio] Puerto <%d,%d> = %d\n", gpio->port, gpio->pin, gpio->state);
+    }
+}
+
+bool gpio_get_state(GPIO_t gpio) {
+    return gpio->state;
 }
 
 /* === End of documentation ==================================================================== */
